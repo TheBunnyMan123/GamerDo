@@ -1,0 +1,34 @@
+@use "reset.scss";
+
+#app {
+    position: fixed;
+    width: 100%;
+    height: 100%;
+    background-color: #dddddd;
+}
+
+#stats {
+    display: flex;
+    flex-direction: row;
+    align-content: center;
+    justify-content: space-around;
+
+    width: 100%;
+    height: 1.5em;
+    padding: 0.5em;
+
+    span {
+        font-size: 1.5em;
+        user-select: none;
+    }
+
+    #pending:after {
+        content: " Pending"
+    }
+    #points:after {
+        content: " Points"
+    }
+    #completed:after {
+        content: " Completed"
+    }
+}
