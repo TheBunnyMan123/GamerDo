@@ -10,12 +10,41 @@
    <body>
       <div id="app">
          <div id="stats">
-            <span id="pending" class="text">0</span>
+            <span id="pending" class="text visible">0</span>
             <span id="points" class="text">0</span>
             <span id="completed" class="text">0</span>
+            <span id="abandoned" class="text">0</span>
          </div>
-         <div id="tasks"></div>
+         <nav id="tabs">
+            <button id="showpending" class="selected">Pending</button>
+            <button id="showcompleted">Completed</button>
+            <button id="showabandoned">Abandoned</button>
+         </nav>
+         <div id="pendingtasks"></div>
+         <div id="completedtasks" style="display: none"></div>
+         <div id="abandonedtasks" style="display: none"></div>
+         <button id="newbutton" class="create">
+            Create
+         </button>
+         <a href="https://fonts.google.com/specimen/Open+Sans/license" style="position: absolute; bottom: 3px; left: 6px; text-align: center; border-radius: 3px; background: #808080; color: #000000"> Font License </a>
       </div>
+      <div id="newtaskdialog" class="dialog">
+         <div style="width:40%;margin:1em;">
+            <div style="padding: 0.5em">
+               <label for="newtaskname">Task:</label>
+               <input id="newtaskname" type="text">
+               <br>
+               <label for="newtaskpoints">Points:</label>
+               <input id="newtaskpoints" type="number">
+            </div>
+
+            <div class="horizontal_even bottom" style="padding:1em">
+               <button class="cancel">Cancel</button>
+               <button class="create">Create</button>
+            </div>
+         </div>
+      </div>
+      <div id="confirmdialog" ckass="dialog"></div>
       <script src="bundle.js"></script>
    </body>
 </html>

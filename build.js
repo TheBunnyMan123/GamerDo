@@ -29,7 +29,7 @@ function inline(inFile, out) {
          fs.writeFileSync("./out/bundle.html", fs.readFileSync("./src/index.html").toString().replace(cssRegex, `<style>${
             sass.compile("./src/css/style.scss", {style: "compressed"}).css
          }</style>`).replace(scriptRegex, `<script>${
-            UglifyJS.minify(buff.toString()).code
+            /*UglifyJS.minify(*/buff.toString()//).code
          }</script>`))
       }
    })
