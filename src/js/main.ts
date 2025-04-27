@@ -12,7 +12,7 @@ async function openDatabase() {
             autoIncrement: true
          })
          const abandonedStore = db.createObjectStore("abandoned", {
-            autoIncrement: true
+            keyPath: "task"
          })
          const miscStore = db.createObjectStore("misc", {
             keyPath: "id"
@@ -112,9 +112,8 @@ async function createTask(task: string, points: number, storeTask: Boolean = tru
 
          addPoints(-Math.round(points/2));
          
-         $("#abandonedtasks").appendChild(newTaskElement);
-         completeButton.remove();
-         abandonButton.remove();
+         newTaskElement.remove();
+         createTask(task, points, false, "abandoned");
       })
 
       newTaskElement.appendChild(newTaskNameElement);
@@ -122,6 +121,30 @@ async function createTask(task: string, points: number, storeTask: Boolean = tru
       newTaskElement.appendChild(newTaskPointsElement);
       newTaskElement.appendChild(completeButton);
       newTaskElement.appendChild(abandonButton);
+   } else if (state == "abandoned") {
+      let completeButton  = document.createElement("button");
+      let abandonButton  = document.createElement("button");
+
+      completeButton.className = "create";
+      abandonButton.className = "cancel";
+      completeButton.style.fontSize = "1em";
+      abandonButton.style.fontSize = "1em";
+
+      completeButton.innerText = "Reinstate";
+      completeButton.addEventListener("click", async (event: Event) => {
+         const db = await openDatabase();
+         let tasks = db.transaction("abandoned", "readwrite").store;
+         tasks.delete(task);
+         addPoints(Math.round(points / 2));
+         newTaskElement.remove();
+
+         createTask(task, points, true, "pending");
+      })
+
+      newTaskElement.appendChild(newTaskNameElement);
+      newTaskElement.appendChild(document.createElement("br"));
+      newTaskElement.appendChild(newTaskPointsElement);
+      newTaskElement.appendChild(completeButton);
    } else {
       newTaskElement.appendChild(newTaskNameElement);
       newTaskElement.appendChild(document.createElement("br"));
