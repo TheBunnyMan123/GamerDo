@@ -124,6 +124,17 @@ label {
     font-weight: 500;
 }
 
+#importbutton {
+    position: fixed;
+    bottom: 1em;
+    right: 10.25em;
+    background: #808080;
+}
+#exportbutton {
+    position: fixed;
+    bottom: 1em;
+    right: 6em;
+}
 #newbutton {
     position: fixed;
     bottom: 1em;

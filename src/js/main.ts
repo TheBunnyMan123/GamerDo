@@ -1,24 +1,62 @@
-import { openDB, deleteDB, wrap, unwrap, IDBPDatabase } from "idb";
+import { openDB, IDBPDatabase, IDBPTransaction } from "idb";
+import { v4 as uuidv4 } from 'uuid';
 
 const $ = document.querySelector.bind(document);
 
 async function openDatabase() {
-   return await openDB("database", 1, {
-      async upgrade(db: IDBPDatabase<unknown>) {
-         const tasksStore = db.createObjectStore("tasks", {
-            keyPath: "task"
-         })
-         const completedStore = db.createObjectStore("completed", {
-            autoIncrement: true
-         })
-         const abandonedStore = db.createObjectStore("abandoned", {
-            keyPath: "task"
-         })
-         const miscStore = db.createObjectStore("misc", {
-            keyPath: "id"
-         })
+   return await openDB("database", 2, {
+      async upgrade(db: IDBPDatabase<unknown>, oldVersion, newVersion, transaction) {
+         async function createStores() {
+            const pendingStore = db.createObjectStore("pending", {
+               keyPath: "uuid"
+            });
+            const completedStore = db.createObjectStore("completed", {
+               keyPath: "uuid"
+            });
+            const abandonedStore = db.createObjectStore("abandoned", {
+               keyPath: "uuid"
+            });
+            const miscStore = db.createObjectStore("misc", {
+               keyPath: "id"
+            });
 
-         await miscStore.add({value: 0, id: "points"});
+            await miscStore.add({value: 0, id: "points"});
+
+            return {misc: miscStore, abandoned: abandonedStore, completed: completedStore, pending: pendingStore};
+         }
+
+         if (oldVersion < 1) {
+            await createStores();
+         } else if (oldVersion < 2) {
+            const updateData = {} as any;
+
+            console.log(transaction, transaction.store)
+            for (const storeName of transaction.objectStoreNames) {
+               let _store = transaction.objectStore(storeName)
+               updateData[storeName] = await _store.getAll();
+               db.deleteObjectStore(storeName);
+            }
+
+            let stores = await createStores();
+
+            for (const storeName in stores) {
+               let _store = stores[storeName as "misc"|"abandoned"|"completed"|"pending"];
+               if (_store) {
+                  let recordList = updateData[storeName == "pending" ? "tasks": storeName];
+                  for (const recordId in recordList) {
+                     const record = recordList[recordId];
+
+                     if (record.name) {
+                        await _store.add({uuid: uuidv4(), task: record.task, points: record.points})
+                     } else {
+                        await _store.add(record);
+                     }
+                  }
+      
+                  await transaction.done;
+               }
+            }
+         }
       }
    });
 }
@@ -46,8 +84,8 @@ async function updateCounters() {
    const misc = db.transaction("misc", "readonly");
    $("#points").innerText = (await misc.store.get("points")).value;
 
-   const tasks = db.transaction("tasks", "readonly");
-   $("#pending").innerText = (await tasks.store.count());
+   const pending = db.transaction("pending", "readonly");
+   $("#pending").innerText = (await pending.store.count());
    
    const completed = db.transaction("completed", "readonly");
    $("#completed").innerText = (await completed.store.count());
@@ -56,13 +94,13 @@ async function updateCounters() {
    $("#abandoned").innerText = (await abandoned.store.count());
 }
 
-async function createTask(task: string, points: number, storeTask: Boolean = true, state: ("pending"|"abandoned"|"completed") = "pending") {
+async function createTask(task: string, points: number, storeTask: Boolean = true, state: ("pending"|"abandoned"|"completed") = "pending", uuid = uuidv4()) {
    if (storeTask) {
       const db = await openDatabase();
-      const transaction = db.transaction("tasks", "readwrite");
+      const transaction = db.transaction("pending", "readwrite");
       const store = transaction.store
 
-      store.add({task: task, points: points});
+      store.add({task: task, points: points, uuid: uuid});
    }
 
    let newTaskElement = document.createElement("div");
@@ -88,11 +126,11 @@ async function createTask(task: string, points: number, storeTask: Boolean = tru
       completeButton.innerText =  "Complete";
       completeButton.addEventListener("click", async (event: Event) => {
          const db = await openDatabase();
-         let tasks = db.transaction("tasks", "readwrite").store;
-         tasks.delete(task);
+         let pending = db.transaction("pending", "readwrite").store;
+         pending.delete(uuid);
 
          let completed = db.transaction("completed", "readwrite").store;
-         completed.add({task: task, points: points})
+         completed.add({task: task, points: points, uuid: uuid})
 
          addPoints(points);
 
@@ -104,16 +142,16 @@ async function createTask(task: string, points: number, storeTask: Boolean = tru
       abandonButton.innerText =  "Abandon";
       abandonButton.addEventListener("click", async (event: Event) => {
          const db = await openDatabase();
-         let tasks = db.transaction("tasks", "readwrite").store;
-         tasks.delete(task);
+         let pending = db.transaction("pending", "readwrite").store;
+         pending.delete(uuid);
 
          let abandoned = db.transaction("abandoned", "readwrite").store;
-         abandoned.add({task: task, points: points})
+         abandoned.add({task: task, points: points, uuid: uuid})
 
          addPoints(-Math.round(points/2));
          
          newTaskElement.remove();
-         createTask(task, points, false, "abandoned");
+         createTask(task, points, false, "abandoned", uuid);
       })
 
       newTaskElement.appendChild(newTaskNameElement);
@@ -133,12 +171,12 @@ async function createTask(task: string, points: number, storeTask: Boolean = tru
       completeButton.innerText = "Reinstate";
       completeButton.addEventListener("click", async (event: Event) => {
          const db = await openDatabase();
-         let tasks = db.transaction("abandoned", "readwrite").store;
-         tasks.delete(task);
+         let abandoned = db.transaction("abandoned", "readwrite").store;
+         abandoned.delete(uuid);
          addPoints(Math.round(points / 2));
          newTaskElement.remove();
 
-         createTask(task, points, true, "pending");
+         createTask(task, points, true, "pending", uuid);
       })
 
       newTaskElement.appendChild(newTaskNameElement);
@@ -196,9 +234,71 @@ $("#showabandoned").addEventListener("click", (event: Event) => {
    $("#showabandoned").className = "selected";
 });
 
+function downloadFile(content: string, name: string) {
+   const blob = new Blob([content], { type: 'application/json' });
+   const url = URL.createObjectURL(blob);
+   const a = document.createElement('a');
+   a.href = url;
+   a.download = name;
+   document.body.appendChild(a);
+   a.click();
+   document.body.removeChild(a);
+   URL.revokeObjectURL(url);
+}
+
+$("#exportbutton").addEventListener("click", async () => {
+   const db = await openDatabase();
+   const exportData = {} as any;
+
+   for (const storeName of db.objectStoreNames) {
+      exportData[storeName] = await db.getAll(storeName);
+   }
+
+   db.close();
+   downloadFile(JSON.stringify(exportData), 'todo.json');
+});
+
+let importFile = document.createElement("input");
+importFile.accept = "application/json";
+importFile.type = "file";
+importFile.addEventListener("change", async () => {
+   const db = await openDatabase();
+   const reader = new FileReader();
+   try {
+      const importData = JSON.parse(await importFile.files[0].text());
+
+      for (const storeName of db.objectStoreNames) {
+         (db.transaction(storeName, "readwrite")).store.clear();
+      }
+
+      for (const storeName in importData) {
+         if (db.objectStoreNames.contains(storeName)) {
+            const transaction = db.transaction(storeName, 'readwrite');
+            const store = transaction.store;
+            
+            for (const record of importData[storeName]) {
+               await store.add(record);
+            }
+
+            await transaction.done;
+         }
+      }
+
+      window.location.reload()
+   } catch (error) {
+      console.error(error);
+      throw error;
+   }
+})
+
+$("#importbutton").addEventListener("click", () => {
+   importFile.click();
+});
+
 (async () => {
    const db = await openDatabase();
-   for await (let task of db.transaction("tasks").store.iterate()) {
+   console.log(db);
+   for await (let task of db.transaction("pending").store.iterate()) {
       let val = task.value
       createTask(val.task, parseInt(val.points.toString()), false, "pending")
    }

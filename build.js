@@ -34,4 +34,3 @@ function inline(inFile, out) {
       }
    })
 })()
-

@@ -3,6 +3,13 @@
       "lib": [
          "ES2023",
          "DOM"
-      ]
+      ],
+      "module": "CommonJS",
+      "target": "ES2017",
+      "moduleResolution": "nodenext",
+      "typeRoots": [
+         "./node_modules/@types"
+      ],
+      "esModuleInterop": true
    }
 }
