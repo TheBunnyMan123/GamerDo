@@ -255,7 +255,7 @@ $("#exportbutton").addEventListener("click", async () => {
    }
 
    db.close();
-   downloadFile(JSON.stringify(exportData), 'todo.json');
+   downloadFile(JSON.stringify(exportData), 'GamerDo_Export.json');
 });
 
 let importFile = document.createElement("input");
