@@ -1,7 +1,9 @@
 import { openDB, IDBPDatabase, IDBPTransaction } from "idb";
 import { v4 as uuidv4 } from 'uuid';
+import { init as licenseAnchor } from "./licenses.ts";
 
 const $ = document.querySelector.bind(document);
+licenseAnchor($("#licenses_download"))
 
 async function openDatabase() {
    return await openDB("database", 2, {

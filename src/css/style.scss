@@ -209,3 +209,13 @@ label {
     display: flex;
     justify-content:space-around;
 }
+
+#licenses_download {
+    position: absolute;
+    bottom: 3px;
+    left: 6px;
+    text-align: center;
+    border-radius: 3px;
+    background: #808080;
+    color: #000000;
+}
