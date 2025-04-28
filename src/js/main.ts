@@ -1,5 +1,5 @@
 import { openDB, IDBPDatabase, IDBPTransaction } from "idb";
-import { v4 as uuidv4 } from 'uuid';
+import { v7 as uuidv7 } from 'uuid';
 import { init as licenseAnchor } from "./licenses.ts";
 
 const $ = document.querySelector.bind(document);
@@ -49,7 +49,7 @@ async function openDatabase() {
                      const record = recordList[recordId];
 
                      if (record.name) {
-                        await _store.add({uuid: uuidv4(), task: record.task, points: record.points})
+                        await _store.add({uuid: uuidv7(), task: record.task, points: record.points})
                      } else {
                         await _store.add(record);
                      }
@@ -96,7 +96,7 @@ async function updateCounters() {
    $("#abandoned").innerText = (await abandoned.store.count());
 }
 
-async function createTask(task: string, points: number, storeTask: Boolean = true, state: ("pending"|"abandoned"|"completed") = "pending", uuid = uuidv4()) {
+async function createTask(task: string, points: number, storeTask: Boolean = true, state: ("pending"|"abandoned"|"completed") = "pending", uuid = uuidv7()) {
    if (storeTask) {
       const db = await openDatabase();
       const transaction = db.transaction("pending", "readwrite");
